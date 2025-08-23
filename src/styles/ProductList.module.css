@@ -1,0 +1,151 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background: #000000;
+  color: #ffffff;
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* QUICK TAGS MENU */
+.quickMenu {
+  margin: 1rem 0;
+}
+
+.tags {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tags::-webkit-scrollbar {
+  display: none;
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tag:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tagActive {
+  background-color: #ff2c55;
+  border-color: #ff2c55;
+  color: #fff;
+}
+
+/* CATEGORY BLOCK */
+.categorySection {
+  background: #1a1a1a;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.categoryTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.categoryTitle::before {
+  content: '';
+  width: 4px;
+  height: 1.25rem;
+  background: #ff2c55;
+  border-radius: 2px;
+}
+
+/* CHILD CATEGORY TABS */
+.tabList {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 8px;
+}
+
+.tabList::-webkit-scrollbar {
+  display: none;
+}
+
+.tabButton {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 100px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.tabButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tabButtonActive {
+  background-color: #f43f5e;
+  color: #fff;
+  border-color: #f43f5e;
+}
+
+.tabButtonActive:hover {
+  background-color: #ff375f;
+}
+
+/* PRODUCT GRID */
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .productGrid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  .categorySection {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .tag {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
+
+

@@ -1,0 +1,122 @@
+.wrap{ background:#0a0a0a; color:#eaeaea; padding:20px 0 48px; }
+
+/* hero */
+.hero{ max-width:1100px; margin:0 auto; padding:0 20px 8px; }
+.breadcrumbs{ color:#9a9a9a; font-size:13px; display:flex; gap:8px; align-items:center; }
+.breadcrumbs a{ color:#9a9a9a; text-decoration:none; }
+.breadcrumbs a:hover{ color:#fe2c55; }
+.sep{ opacity:.35; }
+.title{ margin:10px 0 6px; font-size:28px; font-weight:800; color:#fff; }
+.subtitle{ color:#cfcfcf; }
+
+/* cards */
+.cards{
+  max-width:1100px; margin:10px auto 0; padding:0 20px;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:12px;
+}
+.card{
+  display:flex; gap:10px; align-items:center;
+  background:#101010; border:1px solid #1f1f1f; border-radius:14px;
+  padding:12px; text-decoration:none; color:#eaeaea;
+}
+.card:hover{ border-color:#fe2c55; }
+.cardIcon{ font-size:22px; }
+.cardTitle{ font-weight:700; color:#fff; }
+.cardText{ color:#cfcfcf; font-size:13px; }
+
+/* form + map grid */
+.grid{
+  max-width:1100px; margin:14px auto 0; padding:0 20px;
+  display:grid; grid-template-columns:1.1fr .9fr; gap:14px;
+}
+.heading{ font-size:18px; color:#fff; margin:0 0 10px; }
+
+.form{
+  background:#101010; border:1px solid #1f1f1f; border-radius:16px; padding:14px;
+}
+.row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field{ display:flex; flex-direction:column; gap:6px; }
+.fieldFull{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.field label{ color:#cfcfcf; font-size:13px; }
+.field input, .field select, .fieldFull textarea{
+  background:#121212; border:1px solid #242424; color:#fff;
+  border-radius:10px; padding:10px 12px; outline:none;
+}
+.field input:focus, .field select:focus, .fieldFull textarea:focus{ border-color:#fe2c55; }
+.check{ margin-top:8px; display:flex; align-items:center; gap:8px; color:#dcdcdc; }
+.err{ color:#ff9fb0; font-size:12px; }
+
+.actions{ margin-top:10px; display:flex; align-items:center; gap:10px; }
+.primary{
+  border:none; background:#fe2c55; color:#fff; font-weight:700;
+  padding:10px 16px; border-radius:999px; cursor:pointer;
+  transition:transform .15s ease, filter .15s ease;
+}
+.primary:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+.done{ color:#9be29f; font-size:13px; }
+
+.mapCard{
+  background:#0f0f0f; border:1px solid #1f1f1f; border-radius:16px; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.map{ width:100%; height:360px; border:0; }
+.mapInfo{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:10px 12px; border-top:1px solid #1f1f1f; color:#cfcfcf;
+}
+.link{ color:#fe2c55; text-decoration:none; }
+.link:hover{ text-decoration:underline; }
+
+/* faq */
+.faq{ max-width:1100px; margin:14px auto 0; padding:0 20px; }
+.faqGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.faqItem{
+  background:#101010; border:1px solid #1f1f1f; border-radius:14px; padding:12px;
+}
+.faqItem h4{ margin:0 0 6px; color:#fff; }
+
+/* responsive */
+@media (max-width:1024px){
+  .cards{ grid-template-columns:1fr 1fr; }
+  .grid{ grid-template-columns:1fr; }
+}
+@media (max-width:560px){
+  .cards{ grid-template-columns:1fr; }
+  .row{ grid-template-columns:1fr; }
+}
+
+
+/* Nhóm 3 nút đẹp hơn */
+.contactActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.contactBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 9999px;            /* pill */
+  background: linear-gradient(180deg, #ff2d55, #ff1e4d);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 18px rgba(255, 45, 85, 0.25);
+  transition: transform .12s ease, box-shadow .2s ease, opacity .2s ease;
+}
+
+.contactBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(255, 45, 85, 0.32);
+  opacity: .95;
+}
+
+.contactBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(255, 45, 85, 0.25);
+}
