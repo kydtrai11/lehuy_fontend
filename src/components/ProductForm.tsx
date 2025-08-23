@@ -70,7 +70,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
   /* Load category (để giữ tương thích cho chỗ khác nếu có) */
   useEffect(() => {
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/categories`)
+      .get(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/categories`)
       .then((res) => setCategories(res.data))
       .catch((err) => {
         console.error('Lỗi khi tải danh mục:', err);
@@ -150,7 +150,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
       setSubmitting(true);
       const formData = new FormData();
 
-      (['name','price','description','material','colors','sizes','category','status'] as const).forEach((k) => {
+      (['name', 'price', 'description', 'material', 'colors', 'sizes', 'category', 'status'] as const).forEach((k) => {
         formData.append(k, String(form[k]));
       });
 
@@ -164,7 +164,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         if (v.image instanceof File) formData.append(`variantImages[${idx}]`, v.image);
       });
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/products`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/products`;
       if (editingProduct) {
         await axios.put(`${apiUrl}/${editingProduct._id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },

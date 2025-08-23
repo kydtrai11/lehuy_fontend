@@ -93,7 +93,7 @@ export default function ProductDetailPage() {
   const [related, setRelated] = useState<Product[]>([]);
 
   const { addToCart } = useCart();
-  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const base = process.env.NEXT_PUBLIC_API_URL;
 
   /* ========== fetch product + category name ========== */
   useEffect(() => {

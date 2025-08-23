@@ -36,7 +36,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [activeQuick, setActiveQuick] = useState<'hot' | 'new'>('hot');
 
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const API = process.env.NEXT_PUBLIC_API_URL
 
   // ✅ lấy từ khoá: /?search=abc (an toàn với TS)
   const searchParams = useSearchParams();
@@ -56,6 +56,8 @@ export default function HomePage() {
     try {
       const url = `${API}/api/products${q ? `?search=${encodeURIComponent(q)}` : ''}`;
       const res = await axios.get<Product[]>(url);
+      console.log(url);
+
       setProducts(res.data || []);
     } catch (e) {
       console.error('Lỗi tải sản phẩm:', e);

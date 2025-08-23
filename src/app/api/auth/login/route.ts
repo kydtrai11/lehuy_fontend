@@ -6,10 +6,10 @@ export async function POST(req: Request) {
   const { email, password } = await req.json();
 
   // Gọi API backend thật để kiểm tra tài khoản & lấy role
-  const BE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const BE_URL = process.env.NEXT_PUBLIC_API_URL
   try {
     const { data: user } = await axios.post(`${BE_URL}/auth/login`, { email, password });
-    
+
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
     const token = await new SignJWT({ role: user.role, sub: user.id })
       .setProtectedHeader({ alg: 'HS256' })

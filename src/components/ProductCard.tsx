@@ -49,12 +49,12 @@ export default function ProductCard({
 }: Props) {
   if (!product) return null;
 
-  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const base = process.env.NEXT_PUBLIC_API_URL;
   const imageUrl = product.image?.startsWith('http')
     ? product.image
     : product.image
-    ? `${base}${product.image.startsWith('/') ? '' : '/'}${product.image}`
-    : '/default-image.jpg';
+      ? `${base}${product.image.startsWith('/') ? '' : '/'}${product.image}`
+      : '/default-image.jpg';
 
   const categoryName =
     flattenCategories(categories).find((c) => c._id === product.category)?.name || 'Không rõ';

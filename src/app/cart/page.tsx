@@ -20,7 +20,7 @@ export default function CartPage() {
   const [orderNote, setOrderNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<string | null>(null);
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const API = process.env.NEXT_PUBLIC_API_URL
 
   const router = useRouter();
 

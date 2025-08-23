@@ -21,7 +21,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   const API_BASE = useMemo(
-    () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
+    () => process.env.NEXT_PUBLIC_API_URL || '',
     []
   );
 
@@ -53,8 +53,8 @@ function LoginForm() {
         const axiosError = err as AxiosError<LoginErrorResponse>;
         setError(
           axiosError.response?.data?.message ||
-            axiosError.message ||
-            'Đăng nhập thất bại!'
+          axiosError.message ||
+          'Đăng nhập thất bại!'
         );
       } else {
         setError('Đã có lỗi xảy ra!');
