@@ -6,7 +6,9 @@ export async function POST(req: Request) {
   const { email, password } = await req.json();
 
   // Gọi API backend thật để kiểm tra tài khoản & lấy role
-  const BE_URL = "http://localhost:5001"
+  const BE_URL = "https://dambody.vn"
+  // const BE_URL = " http://localhost:5001"
+  // const BE_URL = process.env.NEXT_PUBLIC_API_URL
   try {
     const { data: user } = await axios.post(`${BE_URL}/api/auth/login`, { email, password });
 
@@ -28,7 +30,6 @@ export async function POST(req: Request) {
     return res;
   } catch (error) {
     console.log(error);
-
-    return NextResponse.json({ ok: false, message: 'Đăng nhập thất bại' }, { status: 401 });
+    return NextResponse.json({ ok: false, message: 'Đăng nhập thất bại', error: error }, { status: 401 });
   }
 }
