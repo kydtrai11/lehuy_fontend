@@ -24,7 +24,7 @@ export default function CategoryManager() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/categories');
+      const res = await axios.get('/api/categories');
       const flatList: Category[] = res.data;
 
       const buildTree = (list: Category[], parent: string | null = null): Category[] =>
@@ -63,7 +63,7 @@ export default function CategoryManager() {
   const handleAddCategory = async () => {
     if (!newName.trim()) return alert('Nhập tên danh mục');
     try {
-      await axios.post('http://localhost:5001/api/categories', { name: newName, parent: parentId });
+      await axios.post('/api/categories', { name: newName, parent: parentId });
       setNewName('');
       setParentId(null);
       fetchCategories();
@@ -75,7 +75,7 @@ export default function CategoryManager() {
   const handleDelete = async (id: string) => {
     if (!confirm('Xác nhận xoá danh mục này?')) return;
     try {
-      await axios.delete(`http://localhost:5001/api/categories/${id}`);
+      await axios.delete(`/api/categories/${id}`);
       fetchCategories();
     } catch {
       alert('Không thể xoá');
@@ -84,7 +84,7 @@ export default function CategoryManager() {
 
   const handleUpdate = async (id: string) => {
     try {
-      await axios.put(`http://localhost:5001/api/categories/${id}`, { name: editing[id] });
+      await axios.put(`/api/categories/${id}`, { name: editing[id] });
       const copy = { ...editing };
       delete copy[id];
       setEditing(copy);

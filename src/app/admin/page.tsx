@@ -70,7 +70,7 @@ export default function AdminPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/products');
+      const res = await axios.get('/api/products');
       setProducts(res.data);
     } catch (err) {
       console.error('Lỗi khi load sản phẩm:', err);
@@ -79,7 +79,7 @@ export default function AdminPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/categories');
+      const res = await axios.get('/api/categories');
       const buildTree = (list: Category[], parent: string | null = null): Category[] => {
         return list
           .filter(c => (parent === null ? !c.parent : c.parent === parent))
@@ -96,7 +96,7 @@ export default function AdminPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:5001/api/products/${id}`);
+      await axios.delete(`/api/products/${id}`);
       setProducts(prev => prev.filter(p => p._id !== id));
     } catch (err) {
       console.error('Lỗi khi xoá sản phẩm:', err);

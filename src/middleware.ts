@@ -31,11 +31,12 @@ export async function middleware(req: NextRequest) {
   const payload = await verifyJWT(token);
   console.log('🔓 Payload:', payload);
 
-  if (!payload || payload.role !== 'admin') {
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    return NextResponse.redirect(url);
-  }
+  // if (!payload || payload.role !== 'admin') {
+  //   const url = req.nextUrl.clone();
+  //   url.pathname = '/login';
+  //   return NextResponse.redirect(url);
+  // }
+  // lưu ý 
 
   return NextResponse.next();
 }

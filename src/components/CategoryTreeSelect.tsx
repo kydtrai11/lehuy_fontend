@@ -25,7 +25,7 @@ export default function CategoryTreeSelect({ value, onChange }: Props) {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://localhost:5001/api/categories');
+        const res = await axios.get('/api/categories');
         setCategories(buildCategoryTree(res.data));
       } catch (err) {
         console.error('Lỗi khi tải danh mục:', err);
@@ -110,7 +110,7 @@ export default function CategoryTreeSelect({ value, onChange }: Props) {
               {isExpanded ? '▼' : '►'}
             </button>
           )}
-          
+
           <div
             onClick={() => onChange(category._id, category.path || category.name)}
             style={{

@@ -46,9 +46,12 @@ function LoginForm() {
       setUser(res.data.user);
 
       // 3. Điều hướng
-      const next = (searchParams?.get('next') as string | null) ?? '/admin';
-      router.push(next);
+      // const next = (searchParams?.get('next') as string | null) ?? '/admin';
+      router.push("/admin");
+      console.log(1);
     } catch (err) {
+      console.log(err);
+
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError<LoginErrorResponse>;
         setError(

@@ -264,6 +264,7 @@ export default function ProductDetailPage() {
 
       await axios.post(`${base}/api/orders`, payload);
 
+
       // (tuỳ bạn) thêm vào giỏ để đồng bộ trải nghiệm, có thể giữ hoặc bỏ
       addToCart({
         productId: product._id,

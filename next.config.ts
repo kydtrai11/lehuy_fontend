@@ -16,7 +16,11 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://45.77.39.200:5001/api/:path*',
+        destination: 'http://localhost:5001/api/:path*',
+      },
+      {
+        source: '/uploads/:path*',
+        destination: 'http://localhost:5001/uploads/:path*',
       },
     ]
   },
