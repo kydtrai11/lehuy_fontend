@@ -26,6 +26,7 @@ export async function POST(req: Request) {
 
     // Tạo JWT
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    console.log(process.env.JWT_SECRET);
     const token = await new SignJWT({ role: user.role, sub: user.id })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
