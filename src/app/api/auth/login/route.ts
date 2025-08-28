@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
-import axios from 'axios';
 
 export async function POST(req: Request) {
   const { email, password } = await req.json();
 
-  // Gọi API backend thật để kiểm tra tài khoản & lấy role
-  const BE_URL = "https://dambody.vn"
-  // const BE_URL = " http://localhost:5001"
+  // URL backend
+  const BE_URL = "http://localhost:5001";
+  // const BE_URL = "https://dambody.vn"
   // const BE_URL = process.env.NEXT_PUBLIC_API_URL
-  try {
-    const { data: user } = await axios.post(`${BE_URL}/api/auth/login`, { email, password });
 
+  try {
+    const response = await fetch(`${BE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Backend login failed");
+    }
+
+    const user = await response.json();
+
+    // Tạo JWT
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
     const token = await new SignJWT({ role: user.role, sub: user.id })
       .setProtectedHeader({ alg: 'HS256' })
@@ -19,6 +32,7 @@ export async function POST(req: Request) {
       .setExpirationTime('7d')
       .sign(secret);
 
+    // Trả response kèm cookie
     const res = NextResponse.json({ ok: true });
     res.cookies.set('session', token, {
       httpOnly: true,
@@ -27,9 +41,13 @@ export async function POST(req: Request) {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
     });
+
     return res;
   } catch (error) {
-    console.log(error);
-    return NextResponse.json({ ok: false, message: 'Đăng nhập thất bại', error: error }, { status: 401 });
+    console.error(error);
+    return NextResponse.json(
+      { ok: false, message: 'Đăng nhập thất bại', error: (error as any).message },
+      { status: 401 }
+    );
   }
 }
