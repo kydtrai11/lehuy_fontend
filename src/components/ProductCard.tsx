@@ -40,6 +40,29 @@ const flattenCategories = (cats: Category[] = []): Category[] => {
   return out;
 };
 
+// ✅ Hàm normalize ảnh: luôn trả về URL hợp lệ
+const normalizeImage = (img?: string): string => {
+  const s = (img || '').trim();
+  if (!s) return '/default-image.jpg';
+
+  // Ảnh external
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+
+  // Nếu đã có path bắt đầu bằng "/uploads"
+  if (s.startsWith('/uploads')) return s;
+
+  // Nếu trong DB lưu "uploads/xxx.jpg"
+  if (s.startsWith('uploads/')) return `/${s}`;
+
+  // Nếu DB lưu "public/uploads/xxx.jpg"
+  if (s.includes('/uploads/')) {
+    return s.substring(s.indexOf('/uploads/'));
+  }
+
+  // fallback: coi như tên file, gắn vào uploads
+  return `/uploads/${s}`;
+};
+
 export default function ProductCard({
   product,
   admin,
@@ -49,12 +72,7 @@ export default function ProductCard({
 }: Props) {
   if (!product) return null;
 
-  const base = process.env.NEXT_PUBLIC_API_URL;
-  const imageUrl = product.image?.startsWith('http')
-    ? product.image
-    : product.image
-      ? `${base}${product.image.startsWith('/') ? '' : '/'}${product.image}`
-      : '/default-image.jpg';
+  const imageUrl = normalizeImage(product.image);
 
   const categoryName =
     flattenCategories(categories).find((c) => c._id === product.category)?.name || 'Không rõ';

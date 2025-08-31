@@ -7,6 +7,18 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
+const api = (p: string) => `/api${p}`;
+
+const normalizeImage = (img?: string) => {
+  const s = (img || '').trim();
+  if (!s) return '/placeholder.png';
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  if (s.startsWith('/uploads')) return s;
+  if (s.startsWith('uploads/')) return `/${s}`;
+  if (s.includes('/uploads/')) return s.slice(s.indexOf('/uploads/'));
+  return `/uploads/${s}`;
+};
+
 export default function CartPage() {
   const { cart, removeFromCart, updateCart } = useCart();
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -20,7 +32,6 @@ export default function CartPage() {
   const [orderNote, setOrderNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<string | null>(null);
-  const API = process.env.NEXT_PUBLIC_API_URL
 
   const router = useRouter();
 
@@ -29,8 +40,8 @@ export default function CartPage() {
   }, []);
 
   const handleSelect = (index: number) => {
-    setSelectedItems((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    setSelectedItems(prev =>
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
     );
   };
 
@@ -72,14 +83,18 @@ export default function CartPage() {
       setSubmitting(true);
       setSubmitMsg(null);
 
-      // gửi từng sản phẩm giống ProductDetail
-      const reqs = selectedItems.map((idx) => {
-        const it = cart[idx];
+      const picked = cart.filter((_, idx) => selectedItems.includes(idx));
+      if (picked.length === 0) {
+        setSubmitMsg('⚠️ Bạn chưa chọn sản phẩm nào.');
+        return;
+      }
+
+      const reqs = picked.map((it) => {
         const payload = {
-          productId: it.productId,
+          productId: (it as any).productId || (it as any)._id, // fallback
           name: it.name,
-          image: it.image,
-          categoryName: '',
+          image: normalizeImage(it.image),
+          categoryName: (it as any).categoryName || '',
           price: it.price,
           variant: { color: it.variant?.color, size: it.variant?.size },
           quantity: it.quantity || 1,
@@ -91,7 +106,7 @@ export default function CartPage() {
           },
           source: 'cart',
         };
-        return axios.post(`${API}/api/orders`, payload);
+        return axios.post(api('/orders'), payload);
       });
 
       await Promise.all(reqs);
@@ -102,11 +117,10 @@ export default function CartPage() {
       updateCart?.(remain);
       setSelectedItems([]);
 
-      // Redirect sang trang cảm ơn
       router.push('/thankyou');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setSubmitMsg('❌ Lỗi khi đặt hàng.');
+      setSubmitMsg(err?.response?.data?.message || '❌ Lỗi khi đặt hàng.');
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +144,14 @@ export default function CartPage() {
                   checked={selectedItems.includes(index)}
                   onChange={() => handleSelect(index)}
                 />
-                <Image src={item.image} alt={item.name} width={100} height={100} className={styles.image} />
+                <Image
+                  src={normalizeImage(item.image)}
+                  alt={item.name}
+                  width={100}
+                  height={100}
+                  className={styles.image}
+                  unoptimized
+                />
                 <div className={styles.info}>
                   <h3>{item.name}</h3>
                   <p>{item.variant?.color} / {item.variant?.size}</p>
@@ -154,8 +175,12 @@ export default function CartPage() {
           </ul>
 
           <div className={styles.footer}>
-            <p>Tổng: <strong>{totalPrice.toLocaleString('vi-VN')}₫</strong></p>
-            <button onClick={openOrderModal} className={styles.orderBtn}>Đặt hàng</button>
+            <p>
+              Tổng: <strong>{totalPrice.toLocaleString('vi-VN')}₫</strong>
+            </p>
+            <button onClick={openOrderModal} className={styles.orderBtn}>
+              Đặt hàng
+            </button>
           </div>
         </>
       )}

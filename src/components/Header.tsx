@@ -2,7 +2,7 @@
 
 import styles from '@/styles/Header.module.css';
 import Image from 'next/image';
-import { FiShoppingCart, FiUser } from 'react-icons/fi';
+import { FiShoppingCart } from 'react-icons/fi'; // ❌ bỏ FiUser
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
@@ -37,13 +37,12 @@ export default function Header() {
 
   return (
     <header className={styles.header}>
-{/* Logo */}
-<div className={styles.logo}>
-  <Link href="/">
-    <Image src="/images/logo.png" alt="Logo" width={72} height={72} />
-  </Link>
-</div>
-
+      {/* Logo */}
+      <div className={styles.logo}>
+        <Link href="/">
+          <Image src="/images/logo.png" alt="Logo" width={72} height={72} />
+        </Link>
+      </div>
 
       {/* Tìm kiếm */}
       <div className={styles.center}>
@@ -66,7 +65,7 @@ export default function Header() {
         </span>
       </div>
 
-      {/* Giỏ hàng + Quản trị + Tài khoản */}
+      {/* Giỏ hàng + Quản trị */}
       <div className={styles.actions}>
         <Link href="/cart" className={styles.cart}>
           <FiShoppingCart size={28} color="#fff" />
@@ -81,22 +80,6 @@ export default function Header() {
             Quản trị
           </Link>
         )}
-
-        <div className={styles.user}>
-          <FiUser size={28} color="#fff" />
-          <div className={styles.userDropdown}>
-            {!mounted || loading ? (
-              <p>Đang tải...</p>
-            ) : user ? (
-              <>
-                <p>👋 {user.email}</p>
-                <button onClick={handleLogout}>Đăng xuất</button>
-              </>
-            ) : (
-              <Link href="/login">Đăng nhập</Link>
-            )}
-          </div>
-        </div>
       </div>
     </header>
   );

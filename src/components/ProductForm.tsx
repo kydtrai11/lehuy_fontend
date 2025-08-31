@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import styles from '@/styles/ProductForm.module.css';
 import CategoryTreeSelect from '@/components/CategoryTreeSelect'; // dùng selector cây
-import Image from 'next/image';
 
 /* ====== Types (giữ nguyên theo dự án hiện tại) ====== */
 interface Variant {
@@ -70,7 +69,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
   /* Load category (để giữ tương thích cho chỗ khác nếu có) */
   useEffect(() => {
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/categories`)
+      .get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/categories`)
       .then((res) => setCategories(res.data))
       .catch((err) => {
         console.error('Lỗi khi tải danh mục:', err);
@@ -142,9 +141,6 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingProduct && !imageFile) return alert('Vui lòng chọn ảnh');
-    if (variants.length > 0 && variants.some(v => !v.color || !v.size || v.price < 0 || v.stock < 0)) {
-      return alert('Vui lòng nhập đầy đủ thông tin biến thể hợp lệ.');
-    }
 
     try {
       setSubmitting(true);
@@ -160,11 +156,11 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
       if (imageFile) formData.append('main', imageFile);
 
       formData.append('variants', JSON.stringify(variants));
-      variants.forEach((v, idx) => {
-        if (v.image instanceof File) formData.append(`variantImages[${idx}]`, v.image);
+      variants.forEach((v) => {
+        if (v.image instanceof File) formData.append('variantImages', v.image);
       });
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/products`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/products`;
       if (editingProduct) {
         await axios.put(`${apiUrl}/${editingProduct._id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -244,7 +240,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
             onChange={(e) => setImageFile(e.target.files?.[0] || null)}
           />
           {previewURL && (
-            <Image src={previewURL} alt="preview" width={100} height={100} className={styles.preview} />
+            <img className={styles.preview} src={previewURL} alt="preview" />
           )}
         </div>
 
@@ -289,6 +285,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
               }
             }}
           />
+
           {!!catPath && <div className={styles.catPath}>Đã chọn: {catPath}</div>}
         </div>
 

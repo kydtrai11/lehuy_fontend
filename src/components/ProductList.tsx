@@ -36,28 +36,23 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [activeQuick, setActiveQuick] = useState<'hot' | 'new'>('hot');
 
-  const API = process.env.NEXT_PUBLIC_API_URL
-
-  // ✅ lấy từ khoá: /?search=abc (an toàn với TS)
+  // ✅ lấy từ khoá: /?search=abc
   const searchParams = useSearchParams();
   const search = (searchParams?.get('search') ?? '').trim();
 
   useEffect(() => {
-    fetchProducts(search);            // ✅ re-fetch khi search đổi
+    fetchProducts(search);            // re-fetch khi search đổi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   useEffect(() => {
     fetchCategories();                // categories load 1 lần
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProducts = async (q: string) => {
     try {
-      const url = `${API}/api/products${q ? `?search=${encodeURIComponent(q)}` : ''}`;
+      const url = `/api/products${q ? `?search=${encodeURIComponent(q)}` : ''}`;
       const res = await axios.get<Product[]>(url);
-      console.log(url);
-
       setProducts(res.data || []);
     } catch (e) {
       console.error('Lỗi tải sản phẩm:', e);
@@ -67,7 +62,7 @@ export default function HomePage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get<Category[]>(`${API}/api/categories`);
+      const res = await axios.get<Category[]>('/api/categories');
       setCategories(res.data || []);
     } catch (e) {
       console.error('Lỗi tải danh mục:', e);

@@ -11,7 +11,7 @@ import ProductCard from '@/components/ProductCard';
 /* ================== Types ================== */
 interface Variant {
   color: string;
-  size: string;           // có thể là "M,L,XL" hoặc "XL"
+  size: string;           // "M,L,XL" hoặc "XL"
   price: number;
   stock: number;
   material?: string;
@@ -27,9 +27,9 @@ interface Product {
   image: string;
   description?: string;
   material?: string;
-  colors?: string;        // "Đỏ,Trắng" (tuỳ bạn có dùng hay không)
+  colors?: string;        // "Đỏ,Trắng"
   sizes?: string;         // "M,L,XL"
-  category: string;       // category id (có thể là con)
+  category: string;       // id danh mục (có thể là danh mục con)
   status?: string;
   variants?: Variant[];
 }
@@ -39,15 +39,20 @@ type CategoryParent = string | { _id: string } | null;
 interface Category {
   _id: string;
   name: string;
-  parent?: CategoryParent; // có thể là id, object {_id}, hoặc null/undefined
+  parent?: CategoryParent; // id, object {_id} hoặc null
 }
 
-/* ================== Helpers (type-safe) ================== */
-const isObjWithId = (v: unknown): v is { _id: string } => {
+interface ObjWithId {
+  _id: string;
+}
+
+/* ================== Helpers ================== */
+// Type guard không dùng any
+const isObjWithId = (v: unknown): v is ObjWithId => {
   return (
     typeof v === 'object' &&
     v !== null &&
-    '_id' in v &&
+    Object.prototype.hasOwnProperty.call(v, '_id') &&
     typeof (v as { _id: unknown })._id === 'string'
   );
 };
@@ -57,7 +62,6 @@ const getParentId = (cat?: Category): string | null => {
   const p = cat.parent;
   if (typeof p === 'string') return p;
   if (isObjWithId(p)) return p._id;
-  // nếu không có parent -> chính nó là cha
   return cat._id ?? null;
 };
 
@@ -65,6 +69,20 @@ const getParentIdFromAny = (p: CategoryParent): string | null => {
   if (typeof p === 'string') return p;
   if (isObjWithId(p)) return p._id;
   return null;
+};
+
+// Dùng đường dẫn tương đối để khớp rewrites trong next.config
+const api = (p: string) => `/api${p}`;
+
+// Chuẩn hoá ảnh: luôn trả về URL hợp lệ cho <Image/>
+const normalizeImage = (img?: string): string => {
+  const s = (img || '').trim();
+  if (!s) return '/placeholder.png';
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  if (s.startsWith('/uploads')) return s;
+  if (s.startsWith('uploads/')) return `/${s}`;
+  if (s.includes('/uploads/')) return s.slice(s.indexOf('/uploads/'));
+  return `/uploads/${s}`;
 };
 
 /* ================== Component ================== */
@@ -93,7 +111,6 @@ export default function ProductDetailPage() {
   const [related, setRelated] = useState<Product[]>([]);
 
   const { addToCart } = useCart();
-  const base = process.env.NEXT_PUBLIC_API_URL;
 
   /* ========== fetch product + category name ========== */
   useEffect(() => {
@@ -101,11 +118,11 @@ export default function ProductDetailPage() {
 
     const fetchProduct = async () => {
       try {
-        const res = await axios.get<Product>(`${base}/api/products/${id}`);
+        const res = await axios.get<Product>(api(`/products/${id}`));
         setProduct(res.data);
 
         if (res.data.category) {
-          const catRes = await axios.get<Category>(`${base}/api/categories/${res.data.category}`);
+          const catRes = await axios.get<Category>(api(`/categories/${res.data.category}`));
           setCategoryName(catRes.data.name);
         } else {
           setCategoryName('');
@@ -118,7 +135,41 @@ export default function ProductDetailPage() {
     };
 
     fetchProduct();
-  }, [id, base]);
+  }, [id]);
+
+  /* ========== chọn biến thể mặc định sau khi tải product ========== */
+  useEffect(() => {
+    if (!product) return;
+
+    if (product.variants?.length) {
+      const v = product.variants[0];
+      setSelectedColor(v.color);
+      const firstSize =
+        (v.size || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)[0] || '';
+      setSelectedSize(firstSize);
+      return;
+    }
+
+    if (product.colors) {
+      const firstColor =
+        product.colors
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)[0] || '';
+      setSelectedColor(firstColor);
+    }
+    if (product.sizes) {
+      const firstSize =
+        product.sizes
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)[0] || '';
+      setSelectedSize(firstSize);
+    }
+  }, [product]);
 
   /* ========== fetch related (cùng danh mục cha) ========== */
   useEffect(() => {
@@ -127,8 +178,8 @@ export default function ProductDetailPage() {
     const fetchRelated = async () => {
       try {
         const [catsRes, prodsRes] = await Promise.all([
-          axios.get<Category[]>(`${base}/api/categories`),
-          axios.get<Product[]>(`${base}/api/products`),
+          axios.get<Category[]>(api('/categories')),
+          axios.get<Product[]>(api('/products')),
         ]);
         const categories = catsRes.data;
         const allProducts = prodsRes.data;
@@ -140,12 +191,10 @@ export default function ProductDetailPage() {
           return;
         }
 
-        // tất cả danh mục thuộc cùng cha (bao gồm chính cha)
         const underSameParentIds = categories
           .filter((c) => c._id === parentId || getParentIdFromAny(c.parent ?? null) === parentId)
           .map((c) => c._id);
 
-        // lọc sản phẩm thuộc các danh mục trên, loại chính nó
         const rel = allProducts
           .filter((p) => p._id !== product._id && underSameParentIds.includes(p.category))
           .slice(0, 8);
@@ -158,7 +207,7 @@ export default function ProductDetailPage() {
     };
 
     fetchRelated();
-  }, [product, base]);
+  }, [product]);
 
   /* ========== derived states ========== */
   const uniqueColors = useMemo(() => {
@@ -188,11 +237,11 @@ export default function ProductDetailPage() {
     );
   }, [product, selectedColor, selectedSize]);
 
+  // Ảnh luôn hợp lệ
   const displayedImage = useMemo(() => {
-    if (selectedVariant?.image) return `${base}${selectedVariant.image}`;
-    if (product?.image?.startsWith('http')) return product.image;
-    return product?.image ? `${base}${product.image}` : '/placeholder.png';
-  }, [product, selectedVariant, base]);
+    if (selectedVariant?.image) return normalizeImage(selectedVariant.image);
+    return normalizeImage(product?.image);
+  }, [product, selectedVariant]);
 
   const displayedPrice =
     selectedVariant?.price ?? product?.price ?? (product?.variants?.[0]?.price ?? 0);
@@ -262,10 +311,8 @@ export default function ProductDetailPage() {
         source: 'product-detail',
       };
 
-      await axios.post(`${base}/api/orders`, payload);
+      await axios.post(api('/orders'), payload);
 
-
-      // (tuỳ bạn) thêm vào giỏ để đồng bộ trải nghiệm, có thể giữ hoặc bỏ
       addToCart({
         productId: product._id,
         name: product.name,
@@ -275,9 +322,7 @@ export default function ProductDetailPage() {
         quantity: qty,
       });
 
-      // Chuyển hướng ngay sang trang cảm ơn
       router.push('/thankyou');
-      // Không setSubmitMsg / không đóng modal bằng setTimeout để tránh nhấp nháy UI
     } catch (err) {
       console.error(err);
       setSubmitMsg('❌ Có lỗi khi đặt hàng. Vui lòng thử lại.');
@@ -300,6 +345,7 @@ export default function ProductDetailPage() {
             width={500}
             height={500}
             className={styles.productImage}
+            unoptimized
           />
         </div>
 
@@ -412,6 +458,7 @@ export default function ProductDetailPage() {
                   width={90}
                   height={90}
                   className={styles.summaryImg}
+                  unoptimized
                 />
                 <div className={styles.summaryInfo}>
                   <p className={styles.summaryName}>{product.name}</p>
