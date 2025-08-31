@@ -159,7 +159,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         if (v.image instanceof File) formData.append('variantImages', v.image);
       });
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/products`;
+      const apiUrl = `/api/products`;
       if (editingProduct) {
         await axios.put(`${apiUrl}/${editingProduct._id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
