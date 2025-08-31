@@ -5,7 +5,6 @@ import axios, { AxiosError } from 'axios';
 import styles from '@/styles/ProductForm.module.css';
 import CategoryTreeSelect from '@/components/CategoryTreeSelect'; // dùng selector cây
 
-/* ====== Types (giữ nguyên theo dự án hiện tại) ====== */
 interface Variant {
   color: string;
   size: string;
