@@ -345,7 +345,7 @@ export default function ProductDetailPage() {
             width={500}
             height={500}
             className={styles.productImage}
-            unoptimized
+          // unoptimized
           />
         </div>
 
@@ -458,7 +458,7 @@ export default function ProductDetailPage() {
                   width={90}
                   height={90}
                   className={styles.summaryImg}
-                  unoptimized
+                // unoptimized
                 />
                 <div className={styles.summaryInfo}>
                   <p className={styles.summaryName}>{product.name}</p>

@@ -150,7 +150,7 @@ export default function CartPage() {
                   width={100}
                   height={100}
                   className={styles.image}
-                  unoptimized
+                // unoptimized
                 />
                 <div className={styles.info}>
                   <h3>{item.name}</h3>

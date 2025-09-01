@@ -68,7 +68,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
   /* Load category (để giữ tương thích cho chỗ khác nếu có) */
   useEffect(() => {
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/categories`)
+      .get(`/api/categories`)
       .then((res) => setCategories(res.data))
       .catch((err) => {
         console.error('Lỗi khi tải danh mục:', err);
