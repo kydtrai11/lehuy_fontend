@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 2221",
+    "git": "git add . && git commit -m 'asd' && git push -u origin main",
     "lint": "next lint"
   },
   "dependencies": {
