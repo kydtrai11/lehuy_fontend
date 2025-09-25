@@ -7,11 +7,13 @@ import Image from 'next/image';
 import styles from './page.module.css';
 import { useCart } from '@/context/CartContext';
 import ProductCard from '@/components/ProductCard';
+import ReactMarkdown from 'react-markdown';
+import { colorMap } from "@/utils/colorMap";
 
-/* ================== Types ================== */
+
 interface Variant {
   color: string;
-  size: string;           // "M,L,XL" hoặc "XL"
+  size: string;
   price: number;
   stock: number;
   material?: string;
@@ -25,56 +27,24 @@ interface Product {
   name: string;
   price?: number;
   image: string;
+  images?: string[];
   description?: string;
   material?: string;
-  colors?: string;        // "Đỏ,Trắng"
-  sizes?: string;         // "M,L,XL"
-  category: string;       // id danh mục (có thể là danh mục con)
+  colors?: string;
+  sizes?: string;
+  category: string;
   status?: string;
   variants?: Variant[];
 }
 
-type CategoryParent = string | { _id: string } | null;
-
 interface Category {
   _id: string;
   name: string;
-  parent?: CategoryParent; // id, object {_id} hoặc null
+  parent?: string | { _id: string } | null;
 }
 
-interface ObjWithId {
-  _id: string;
-}
-
-/* ================== Helpers ================== */
-// Type guard không dùng any
-const isObjWithId = (v: unknown): v is ObjWithId => {
-  return (
-    typeof v === 'object' &&
-    v !== null &&
-    Object.prototype.hasOwnProperty.call(v, '_id') &&
-    typeof (v as { _id: unknown })._id === 'string'
-  );
-};
-
-const getParentId = (cat?: Category): string | null => {
-  if (!cat) return null;
-  const p = cat.parent;
-  if (typeof p === 'string') return p;
-  if (isObjWithId(p)) return p._id;
-  return cat._id ?? null;
-};
-
-const getParentIdFromAny = (p: CategoryParent): string | null => {
-  if (typeof p === 'string') return p;
-  if (isObjWithId(p)) return p._id;
-  return null;
-};
-
-// Dùng đường dẫn tương đối để khớp rewrites trong next.config
 const api = (p: string) => `/api${p}`;
 
-// Chuẩn hoá ảnh: luôn trả về URL hợp lệ cho <Image/>
 const normalizeImage = (img?: string): string => {
   const s = (img || '').trim();
   if (!s) return '/placeholder.png';
@@ -85,7 +55,6 @@ const normalizeImage = (img?: string): string => {
   return `/uploads/${s}`;
 };
 
-/* ================== Component ================== */
 export default function ProductDetailPage() {
   const params = useParams() as { id?: string | string[] };
   const id = Array.isArray(params.id) ? params.id[0] : params.id ?? '';
@@ -95,10 +64,12 @@ export default function ProductDetailPage() {
   const [categoryName, setCategoryName] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
+  // state cho biến thể
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
+  const [manualImage, setManualImage] = useState<string | null>(null);
 
-  // Modal form state
+  // state cho modal đặt hàng
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [qty, setQty] = useState(1);
   const [orderName, setOrderName] = useState('');
@@ -108,14 +79,16 @@ export default function ProductDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<string | null>(null);
 
-  const [related, setRelated] = useState<Product[]>([]);
+  // ✅ state để toggle mô tả
+  const [descExpanded, setDescExpanded] = useState(false);
 
+  // sản phẩm liên quan
+  const [related, setRelated] = useState<Product[]>([]);
   const { addToCart } = useCart();
 
-  /* ========== fetch product + category name ========== */
+
   useEffect(() => {
     if (!id) return;
-
     const fetchProduct = async () => {
       try {
         const res = await axios.get<Product>(api(`/products/${id}`));
@@ -124,8 +97,6 @@ export default function ProductDetailPage() {
         if (res.data.category) {
           const catRes = await axios.get<Category>(api(`/categories/${res.data.category}`));
           setCategoryName(catRes.data.name);
-        } else {
-          setCategoryName('');
         }
       } catch (err) {
         console.error('Lỗi khi lấy chi tiết sản phẩm:', err);
@@ -133,83 +104,41 @@ export default function ProductDetailPage() {
         setLoading(false);
       }
     };
-
     fetchProduct();
   }, [id]);
 
-  /* ========== chọn biến thể mặc định sau khi tải product ========== */
   useEffect(() => {
-    if (!product) return;
-
-    if (product.variants?.length) {
-      const v = product.variants[0];
-      setSelectedColor(v.color);
-      const firstSize =
-        (v.size || '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)[0] || '';
-      setSelectedSize(firstSize);
-      return;
-    }
-
-    if (product.colors) {
-      const firstColor =
-        product.colors
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)[0] || '';
-      setSelectedColor(firstColor);
-    }
-    if (product.sizes) {
-      const firstSize =
-        product.sizes
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)[0] || '';
-      setSelectedSize(firstSize);
-    }
-  }, [product]);
-
-  /* ========== fetch related (cùng danh mục cha) ========== */
-  useEffect(() => {
-    if (!product) return;
-
+    if (!product || !product.category) return;
     const fetchRelated = async () => {
       try {
-        const [catsRes, prodsRes] = await Promise.all([
-          axios.get<Category[]>(api('/categories')),
-          axios.get<Product[]>(api('/products')),
-        ]);
-        const categories = catsRes.data;
-        const allProducts = prodsRes.data;
-
-        const catOfProduct = categories.find((c) => c._id === product.category);
-        const parentId = getParentId(catOfProduct);
-        if (!parentId) {
-          setRelated([]);
-          return;
-        }
-
-        const underSameParentIds = categories
-          .filter((c) => c._id === parentId || getParentIdFromAny(c.parent ?? null) === parentId)
-          .map((c) => c._id);
-
-        const rel = allProducts
-          .filter((p) => p._id !== product._id && underSameParentIds.includes(p.category))
-          .slice(0, 8);
-
-        setRelated(rel);
-      } catch (e) {
-        console.error('Lỗi khi lấy sản phẩm liên quan:', e);
-        setRelated([]);
+        const res = await axios.get<Product[]>(api(`/products?category=${product.category}`));
+        const filtered = res.data.filter((p) => p._id !== product._id);
+        setRelated(filtered.slice(0, 8));
+      } catch (err) {
+        console.error('Lỗi khi lấy sản phẩm liên quan:', err);
       }
     };
-
     fetchRelated();
   }, [product]);
 
-  /* ========== derived states ========== */
+  useEffect(() => {
+    if (!product) return;
+    if (product.variants?.length) {
+      const v = product.variants[0];
+      setSelectedColor(v.color);
+      setSelectedSize(v.size || '');
+      return;
+    }
+    if (product.colors) {
+      const firstColor = product.colors.split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
+      setSelectedColor(firstColor);
+    }
+    if (product.sizes) {
+      const firstSize = product.sizes.split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
+      setSelectedSize(firstSize);
+    }
+  }, [product]);
+
   const uniqueColors = useMemo(() => {
     if (!product) return [];
     if (product.colors) return product.colors.split(',').map((c) => c.trim()).filter(Boolean);
@@ -223,7 +152,7 @@ export default function ProductDetailPage() {
     if (hasColor) {
       const sizes = (product.variants ?? [])
         .filter((v) => v.color === selectedColor)
-        .flatMap((v) => v.size.split(',').map((s) => s.trim()))
+        .map((v) => v.size.trim())
         .filter(Boolean);
       return Array.from(new Set(sizes));
     }
@@ -237,23 +166,24 @@ export default function ProductDetailPage() {
     );
   }, [product, selectedColor, selectedSize]);
 
-  // Ảnh luôn hợp lệ
   const displayedImage = useMemo(() => {
+    if (manualImage) return normalizeImage(manualImage);
     if (selectedVariant?.image) return normalizeImage(selectedVariant.image);
-    return normalizeImage(product?.image);
-  }, [product, selectedVariant]);
+    return normalizeImage(product?.images?.[0] || product?.image);
+  }, [manualImage, product, selectedVariant]);
 
   const displayedPrice =
     selectedVariant?.price ?? product?.price ?? (product?.variants?.[0]?.price ?? 0);
 
   const displayedMaterial = selectedVariant?.material ?? product?.material;
-  const displayedDescription = selectedVariant?.description ?? product?.description;
-  const displayedStatus = selectedVariant?.status ?? product?.status;
+  const displayedDescription =
+    (selectedVariant?.description && selectedVariant.description.trim()) || product?.description;
 
-  /* ========== actions ========== */
+  const displayedStatus = selectedVariant?.status ?? product?.status;
+  const displayedStock = selectedVariant?.stock ?? null;
+
   const handleAddToCart = () => {
     if (!product || !selectedColor || !selectedSize) return;
-
     addToCart({
       productId: product._id,
       name: product.name,
@@ -280,7 +210,6 @@ export default function ProductDetailPage() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
-
     if (!orderName.trim() || !validatePhoneVN(orderPhone) || !orderAddress.trim()) {
       setSubmitMsg('⚠️ Vui lòng nhập Họ tên, SĐT hợp lệ và Địa chỉ giao hàng.');
       return;
@@ -289,11 +218,9 @@ export default function ProductDetailPage() {
       setSubmitMsg('⚠️ Số lượng phải ≥ 1.');
       return;
     }
-
     try {
       setSubmitting(true);
       setSubmitMsg(null);
-
       const payload = {
         productId: product._id,
         name: product.name,
@@ -310,9 +237,7 @@ export default function ProductDetailPage() {
         },
         source: 'product-detail',
       };
-
       await axios.post(api('/orders'), payload);
-
       addToCart({
         productId: product._id,
         name: product.name,
@@ -321,7 +246,6 @@ export default function ProductDetailPage() {
         variant: { color: selectedColor, size: selectedSize },
         quantity: qty,
       });
-
       router.push('/thankyou');
     } catch (err) {
       console.error(err);
@@ -331,60 +255,101 @@ export default function ProductDetailPage() {
     }
   };
 
-  /* ========== render ========== */
   if (loading) return <p className={styles.loading}>Đang tải...</p>;
   if (!product) return <p className={styles.error}>Không tìm thấy sản phẩm.</p>;
+
+  const thumbnails = product.images && product.images.length > 0 ? product.images : [product.image];
 
   return (
     <>
       <main className={styles.detailContainer}>
-        <div className={styles.imageBox}>
-          <Image
-            src={displayedImage}
-            alt={product.name}
-            width={500}
-            height={500}
-            className={styles.productImage}
-          // unoptimized
-          />
+        <div className={styles.galleryBox}>
+          <div className={styles.mainImage}>
+            <Image
+              src={displayedImage}
+              alt={product.name}
+              width={500}
+              height={500}
+              className={styles.productImage}
+            />
+          </div>
+          {thumbnails.length > 1 && (
+            <div className={styles.thumbnails}>
+              {thumbnails.map((img, idx) => (
+                <Image
+                  key={idx}
+                  src={normalizeImage(img)}
+                  alt={`${product.name}-${idx}`}
+                  width={80}
+                  height={80}
+                  className={`${styles.thumb} ${displayedImage === normalizeImage(img) ? styles.active : ''
+                    }`}
+                  onClick={() => setManualImage(img)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.infoBox}>
           <h1 className={styles.productName}>{product.name}</h1>
 
+          {/* Màu sắc */}
           {uniqueColors.length > 0 && (
             <div className={styles.variantSection}>
-              <p><strong>Màu sắc:</strong></p>
-              <div className={styles.colorOptions}>
-                {uniqueColors.map((color) => (
-                  <div
-                    key={color}
-                    className={`${styles.colorCircleWrapper} ${selectedColor === color ? styles.selectedWrapper : ''}`}
-                    onClick={() => {
-                      setSelectedColor(color);
-                      setSelectedSize('');
-                    }}
-                  >
-                    <div className={styles.colorCircle} style={{ backgroundColor: color }} />
-                    <span className={styles.colorLabel}>{color}</span>
+
+              {/* Màu sắc */}
+              {uniqueColors.length > 0 && (
+                <div className={styles.variantSection}>
+                  <p><strong>Màu sắc:</strong></p>
+                  <div className={styles.colorOptions}>
+                    {uniqueColors.map((color) => {
+                      const colorCode = colorMap[color] || "#ccc"; // fallback nếu không có mapping
+                      return (
+                        <div
+                          key={color}
+                          className={`${styles.colorCircleWrapper} ${selectedColor === color ? styles.selectedWrapper : ""
+                            }`}
+                          onClick={() => {
+                            setManualImage(null);
+                            setSelectedColor(color);
+                          }}
+                        >
+                          <div
+                            className={styles.colorCircle}
+                            style={{ backgroundColor: colorCode }}
+                          />
+                          <span className={styles.colorLabel}>{color}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+
+
             </div>
           )}
 
+          {/* Size */}
           {availableSizes.length > 0 && selectedColor && (
             <div className={styles.variantSection}>
               <p><strong>Kích thước:</strong></p>
               <div className={styles.sizeOptions}>
                 {availableSizes.map((size) => (
-                  <div
+                  <button
                     key={size}
-                    className={`${styles.sizeButton} ${selectedSize === size ? styles.selectedSize : ''}`}
-                    onClick={() => setSelectedSize(size)}
+                    type="button"
+                    className={`${styles.sizeBtn} ${selectedSize === size ? styles.active : ''
+                      }`}
+                    onClick={() => {
+                      setManualImage(null);
+                      setSelectedSize(size);
+                    }}
                   >
                     {size}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -394,12 +359,53 @@ export default function ProductDetailPage() {
           <p className={styles.status}>
             <strong>Trạng thái:</strong> {displayedStatus || 'Đang cập nhật'}
           </p>
+          {displayedStock !== null && (
+            <p className={styles.stock}><strong>Tồn kho:</strong> {displayedStock}</p>
+          )}
 
-          <div className={styles.meta}>
-            {displayedDescription && <p><strong>Mô tả:</strong> {displayedDescription}</p>}
-            {displayedMaterial && <p><strong>Chất liệu:</strong> {displayedMaterial}</p>}
-            {categoryName && <p><strong>📂 Danh mục:</strong> {categoryName}</p>}
-          </div>
+          {/* Mô tả */}
+          {/* Mô tả */}
+          {displayedDescription && (
+            <div
+              className={`${styles.descriptionBox} ${descExpanded ? styles.descExpanded : styles.descCollapsed
+                }`}
+            >
+              <h4>Mô tả sản phẩm:</h4>
+              <ReactMarkdown
+                components={{
+                  img: ({ node, ...props }) => (
+                    <img
+                      {...props}
+                      src={normalizeImage(props.src || "")}
+                      className={styles.descImage}
+                      alt="Mô tả sản phẩm"
+                    />
+                  ),
+                  p: ({ node, ...props }) => (
+                    <p {...props} className={styles.descParagraph} />
+                  ),
+                }}
+              >
+                {displayedDescription}
+              </ReactMarkdown>
+
+              {/* ✅ Nút toggle nằm bên trong box */}
+              <button
+                type="button"
+                className={styles.toggleBtn}
+                onClick={() => setDescExpanded(!descExpanded)}
+              >
+                {descExpanded ? "Thu gọn ▲" : "Xem thêm ▼"}
+              </button>
+            </div>
+          )}
+
+
+
+
+
+          {displayedMaterial && <p><strong>Chất liệu:</strong> {displayedMaterial}</p>}
+          {categoryName && <p><strong> Danh mục:</strong> {categoryName}</p>}
 
           <div className={styles.actions}>
             <button
@@ -409,7 +415,6 @@ export default function ProductDetailPage() {
             >
               🛒 Thêm vào giỏ hàng
             </button>
-
             <button
               className={styles.orderBtn}
               onClick={handleOrderNow}
@@ -417,13 +422,12 @@ export default function ProductDetailPage() {
             >
               🧾 Đặt hàng ngay
             </button>
-
             <a href="tel:0123456789" className={styles.contactBtn}>📞 Liên hệ tư vấn</a>
           </div>
         </div>
       </main>
 
-      {/* ===== SẢN PHẨM LIÊN QUAN ===== */}
+      {/* Liên quan */}
       {related.length > 0 && (
         <section className={styles.relatedSection}>
           <h2 className={styles.relatedTitle}>Sản phẩm liên quan</h2>
@@ -435,7 +439,7 @@ export default function ProductDetailPage() {
         </section>
       )}
 
-      {/* ===== MODAL ĐẶT HÀNG ===== */}
+      {/* Modal đặt hàng */}
       {isOrderOpen && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
@@ -449,7 +453,6 @@ export default function ProductDetailPage() {
                 ×
               </button>
             </div>
-
             <div className={styles.modalBody}>
               <div className={styles.summary}>
                 <Image
@@ -458,15 +461,16 @@ export default function ProductDetailPage() {
                   width={90}
                   height={90}
                   className={styles.summaryImg}
-                // unoptimized
                 />
                 <div className={styles.summaryInfo}>
                   <p className={styles.summaryName}>{product.name}</p>
                   <p>Biến thể: <strong>{selectedColor}</strong> / <strong>{selectedSize}</strong></p>
                   <p className={styles.summaryPrice}>{displayedPrice.toLocaleString('vi-VN')}₫</p>
+                  {displayedStock !== null && (
+                    <p><strong>Tồn kho:</strong> {displayedStock}</p>
+                  )}
                 </div>
               </div>
-
               <form onSubmit={handleSubmitOrder} className={styles.orderForm}>
                 <div className={styles.formRow}>
                   <label htmlFor="orderName">Họ tên *</label>
@@ -475,11 +479,9 @@ export default function ProductDetailPage() {
                     type="text"
                     value={orderName}
                     onChange={(e) => setOrderName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
                     required
                   />
                 </div>
-
                 <div className={styles.formRow}>
                   <label htmlFor="orderPhone">Số điện thoại *</label>
                   <input
@@ -487,23 +489,19 @@ export default function ProductDetailPage() {
                     type="tel"
                     value={orderPhone}
                     onChange={(e) => setOrderPhone(e.target.value)}
-                    placeholder="090xxxxxxx"
                     required
                   />
                 </div>
-
                 <div className={styles.formRow}>
                   <label htmlFor="orderAddress">Địa chỉ giao hàng *</label>
                   <textarea
                     id="orderAddress"
                     value={orderAddress}
                     onChange={(e) => setOrderAddress(e.target.value)}
-                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
                     rows={3}
                     required
                   />
                 </div>
-
                 <div className={styles.formRowInline}>
                   <label htmlFor="qty">Số lượng</label>
                   <div className={styles.qtyBox}>
@@ -518,20 +516,16 @@ export default function ProductDetailPage() {
                     <button type="button" onClick={() => setQty((q) => q + 1)}>+</button>
                   </div>
                 </div>
-
                 <div className={styles.formRow}>
                   <label htmlFor="orderNote">Ghi chú</label>
                   <textarea
                     id="orderNote"
                     value={orderNote}
                     onChange={(e) => setOrderNote(e.target.value)}
-                    placeholder="Yêu cầu giao hàng, xuất hoá đơn,..."
                     rows={2}
                   />
                 </div>
-
                 {submitMsg && <p className={styles.submitMsg}>{submitMsg}</p>}
-
                 <button className={styles.submitBtn} type="submit" disabled={submitting}>
                   {submitting ? 'Đang gửi...' : 'Xác nhận đặt hàng'}
                 </button>

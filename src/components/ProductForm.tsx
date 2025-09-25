@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import styles from '@/styles/ProductForm.module.css';
-import CategoryTreeSelect from '@/components/CategoryTreeSelect'; // dùng selector cây
+import CategoryTreeSelect from '@/components/CategoryTreeSelect';
+import dynamic from 'next/dynamic';
+import ReactMarkdown from 'react-markdown'; // ✅ bổ sung import
+
+// ✅ Markdown editor
+const MdEditor = dynamic(() => import('react-markdown-editor-lite'), { ssr: false });
+import 'react-markdown-editor-lite/lib/index.css';
 
 interface Variant {
   color: string;
@@ -21,6 +27,7 @@ interface Product {
   name: string;
   price: number;
   image: string;
+  images?: string[];
   description: string;
   material: string;
   colors: string;
@@ -44,7 +51,6 @@ interface Category {
   parent?: Category | null | string;
 }
 
-/* ====== Component ====== */
 export default function ProductForm({ onCreated, editingProduct, onUpdated }: Props) {
   const [form, setForm] = useState<Omit<Product, '_id' | 'image' | 'variants'>>({
     name: '',
@@ -60,23 +66,25 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
   });
 
   const [variants, setVariants] = useState<Variant[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [images, setImages] = useState<File[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [catPath, setCatPath] = useState<string>(''); // chỉ để hiển thị breadcrumb danh mục đã chọn
+  const [catPath, setCatPath] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
 
-  /* Load category (để giữ tương thích cho chỗ khác nếu có) */
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+  // ====== Load danh mục ======
   useEffect(() => {
     axios
-      .get(`/api/categories`)
+      .get(`${API_URL}/api/categories`)
       .then((res) => setCategories(res.data))
       .catch((err) => {
         console.error('Lỗi khi tải danh mục:', err);
         alert('Không thể tải danh mục sản phẩm');
       });
-  }, []);
+  }, [API_URL]);
 
-  /* Load khi sửa */
+  // ====== Load khi sửa ======
   useEffect(() => {
     if (editingProduct) {
       setForm({
@@ -92,18 +100,17 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         isNew: !!editingProduct.isNew,
       });
       setVariants(editingProduct.variants || []);
-      setImageFile(null);
+      setImages([]);
     }
   }, [editingProduct]);
 
-  /* ====== Helpers ====== */
-  const previewURL = useMemo(
-    () => (imageFile ? URL.createObjectURL(imageFile) : ''),
-    [imageFile]
+  const previewURLs = useMemo(
+    () => images.map((f) => URL.createObjectURL(f)),
+    [images]
   );
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -117,6 +124,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
     setForm((prev) => ({ ...prev, [name]: checked }));
   };
 
+  // Generate variants
   const generateVariants = () => {
     const colors = form.colors.split(',').map((c) => c.trim()).filter(Boolean);
     const sizes = form.sizes.split(',').map((s) => s.trim()).filter(Boolean);
@@ -136,10 +144,10 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
     setVariants((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  /* ====== Submit ====== */
+  // Submit
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!editingProduct && !imageFile) return alert('Vui lòng chọn ảnh');
+    if (!editingProduct && images.length === 0) return alert('Vui lòng chọn ảnh');
 
     try {
       setSubmitting(true);
@@ -152,14 +160,27 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
       formData.append('isHot', String(!!form.isHot));
       formData.append('isNew', String(!!form.isNew));
 
-      if (imageFile) formData.append('main', imageFile);
+      images.forEach((file) => formData.append('images', file));
 
-      formData.append('variants', JSON.stringify(variants));
-      variants.forEach((v) => {
-        if (v.image instanceof File) formData.append('variantImages', v.image);
+      formData.append(
+        'variants',
+        JSON.stringify(
+          variants.map((v) => {
+            if (v.image instanceof File) {
+              return { ...v, image: undefined };
+            }
+            return v;
+          })
+        )
+      );
+
+      variants.forEach((v, idx) => {
+        if (v.image instanceof File) {
+          formData.append(`variantImages_${idx}`, v.image);
+        }
       });
 
-      const apiUrl = `/api/products`;
+      const apiUrl = `${API_URL}/api/products`;
       if (editingProduct) {
         await axios.put(`${apiUrl}/${editingProduct._id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -174,7 +195,6 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         onCreated();
       }
 
-      // reset
       setForm({
         name: '',
         price: 0,
@@ -187,7 +207,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         isHot: false,
         isNew: false,
       });
-      setImageFile(null);
+      setImages([]);
       setVariants([]);
       setCatPath('');
     } catch (error) {
@@ -205,8 +225,9 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         <h3>Thông tin sản phẩm</h3>
       </div>
 
-      {/* Grid 2 cột (auto 1 cột trên mobile) */}
+      {/* Grid */}
       <div className={styles.grid}>
+        {/* Tên */}
         <div className={styles.field}>
           <label>Tên sản phẩm</label>
           <input
@@ -218,6 +239,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           />
         </div>
 
+        {/* Giá */}
         <div className={styles.field}>
           <label>Giá (VNĐ)</label>
           <input
@@ -231,18 +253,40 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           />
         </div>
 
+        {/* Ảnh */}
         <div className={styles.field}>
-          <label>Ảnh đại diện</label>
+          <label>Ảnh sản phẩm (chọn nhiều)</label>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            multiple
+            onChange={(e) => setImages(e.target.files ? Array.from(e.target.files) : [])}
           />
-          {previewURL && (
-            <img className={styles.preview} src={previewURL} alt="preview" />
+          {previewURLs.length > 0 && (
+            <div className={styles.previewList}>
+              {previewURLs.map((url, idx) =>
+                url && url.trim() ? (
+                  <img
+                    key={idx}
+                    className={styles.preview}
+                    src={url}
+                    alt={`preview-${idx}`}
+                  />
+                ) : (
+                  <img
+                    key={idx}
+                    className={styles.preview}
+                    src="/default-image.jpg"
+                    alt="no-preview"
+                  />
+                )
+              )}
+            </div>
           )}
+
         </div>
 
+        {/* Chất liệu */}
         <div className={styles.field}>
           <label>Chất liệu</label>
           <input
@@ -253,6 +297,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           />
         </div>
 
+        {/* Màu sắc */}
         <div className={styles.field}>
           <label>Màu sắc <span className={styles.hint}>(cách nhau bằng dấu phẩy)</span></label>
           <input
@@ -263,6 +308,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           />
         </div>
 
+        {/* Size */}
         <div className={styles.field}>
           <label>Size <span className={styles.hint}>(cách nhau bằng dấu phẩy)</span></label>
           <input
@@ -273,6 +319,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           />
         </div>
 
+        {/* Danh mục */}
         <div className={styles.field}>
           <label>Danh mục</label>
           <CategoryTreeSelect
@@ -284,10 +331,10 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
               }
             }}
           />
-
           {!!catPath && <div className={styles.catPath}>Đã chọn: {catPath}</div>}
         </div>
 
+        {/* Trạng thái */}
         <div className={styles.field}>
           <label>Trạng thái</label>
           <select name="status" value={form.status} onChange={handleChange}>
@@ -296,6 +343,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           </select>
         </div>
 
+        {/* Checkbox hot/new */}
         <div className={styles.checkbox}>
           <label>
             <input
@@ -321,15 +369,46 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         </div>
       </div>
 
+      {/* ✅ Markdown Editor */}
       <div className={styles.fieldFull}>
         <label>Mô tả sản phẩm</label>
-        <textarea
-          name="description"
+        <MdEditor
           value={form.description}
-          onChange={handleChange}
-          rows={4}
-          placeholder="Mô tả ngắn gọn về chất liệu, form dáng, ưu điểm…"
+          style={{ height: '300px' }}
+          renderHTML={(text: string) => <ReactMarkdown>{text}</ReactMarkdown>}
+          onChange={({ text }: { text: string }) =>
+            setForm((prev) => ({ ...prev, description: text }))
+          }
+          onImageUpload={async (file: File) => {
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+              const res = await axios.post(`${API_URL}/api/upload/description`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+              });
+
+              const url =
+                res.data?.url ||
+                res.data?.path ||
+                (res.data?.filename ? `/uploads/description/${res.data.filename}` : '');
+
+              if (!url) throw new Error('❌ Không tìm thấy đường dẫn ảnh trong response');
+
+              // ✅ Trả đúng cú pháp markdown ảnh
+              return `![ảnh mô tả](${url})`;
+            } catch (err) {
+              alert('❌ Upload ảnh thất bại');
+              return Promise.reject(err);
+            }
+          }}
+
+
+
+
         />
+        <p className={styles.hint}>
+          Bạn có thể dùng Markdown: <code>**đậm**</code>, <code>![ảnh](url)</code> ...
+        </p>
       </div>
 
       {/* Biến thể */}
@@ -338,13 +417,35 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         <button className={styles.ghostBtn} type="button" onClick={generateVariants}>
           🔄 Tạo nhanh từ Màu & Size
         </button>
+        {/* ✅ Nút đồng bộ */}
+        <button
+          className={styles.ghostBtn}
+          type="button"
+          onClick={() => {
+            if (variants.length === 0) return;
+            const base = variants[0]; // ✅ lấy biến thể đầu tiên làm chuẩn
+            setVariants((prev) =>
+              prev.map((v, idx) =>
+                idx === 0
+                  ? v // giữ nguyên bản gốc
+                  : {
+                    ...v,
+                    price: base.price,
+                    stock: base.stock,
+                    description: base.description,
+                    status: base.status,
+                  }
+              )
+            );
+          }}
+        >
+          📌 Đồng bộ theo biến thể đầu tiên
+        </button>
       </div>
 
-      <div className={styles.variants}>
-        {variants.length === 0 && (
-          <div className={styles.note}>Chưa có biến thể. Hãy nhập “Màu sắc”, “Size” ở trên và bấm “Tạo nhanh”.</div>
-        )}
 
+      <div className={styles.variants}>
+        {variants.length === 0 && <div className={styles.note}>Chưa có biến thể.</div>}
         {variants.map((v, idx) => (
           <div className={styles.variantRow} key={`variant-${idx}`}>
             <div className={styles.cellSm}>
@@ -466,7 +567,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         ))}
       </div>
 
-      {/* Submit sticky */}
+      {/* Submit */}
       <div className={styles.submitBar}>
         <button className={styles.submitBtn} type="submit" disabled={submitting}>
           {submitting ? 'Đang lưu…' : editingProduct ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm'}

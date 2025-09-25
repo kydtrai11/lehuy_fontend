@@ -9,6 +9,7 @@ type Variant = { color: string; size: string; price: number; stock: number };
 interface Product {
   _id: string;
   image: string;
+  images?: string[];
   name: string;
   price?: number;
   sold?: number;
@@ -40,27 +41,20 @@ const flattenCategories = (cats: Category[] = []): Category[] => {
   return out;
 };
 
-// ✅ Hàm normalize ảnh: luôn trả về URL hợp lệ
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+/* ✅ Chuẩn hoá ảnh */
 const normalizeImage = (img?: string): string => {
   const s = (img || '').trim();
   if (!s) return '/default-image.jpg';
 
-  // Ảnh external
   if (s.startsWith('http://') || s.startsWith('https://')) return s;
 
-  // Nếu đã có path bắt đầu bằng "/uploads"
-  if (s.startsWith('/uploads')) return s;
-
-  // Nếu trong DB lưu "uploads/xxx.jpg"
-  if (s.startsWith('uploads/')) return `/${s}`;
-
-  // Nếu DB lưu "public/uploads/xxx.jpg"
-  if (s.includes('/uploads/')) {
-    return s.substring(s.indexOf('/uploads/'));
+  if (s.startsWith('/uploads') || s.startsWith('uploads/')) {
+    return `${API_BASE}${s.startsWith('/') ? s : '/' + s}`;
   }
 
-  // fallback: coi như tên file, gắn vào uploads
-  return `/uploads/${s}`;
+  return `${API_BASE}/uploads/${s}`;
 };
 
 export default function ProductCard({
@@ -72,13 +66,35 @@ export default function ProductCard({
 }: Props) {
   if (!product) return null;
 
-  const imageUrl = normalizeImage(product.image);
+  // ✅ Ưu tiên gallery
+  const firstImage =
+    product.images && product.images.length > 0 ? product.images[0] : product.image;
+  const imageUrl = normalizeImage(firstImage);
 
+  // ✅ Lấy tên danh mục
   const categoryName =
-    flattenCategories(categories).find((c) => c._id === product.category)?.name || 'Không rõ';
+    flattenCategories(categories).find((c) => c._id === product.category)?.name ||
+    'Không rõ';
 
-  const displayPrice =
-    typeof product.price === 'number' ? product.price : product.variants?.[0]?.price;
+  // ✅ Hiển thị giá (nếu có nhiều variant thì lấy min-max)
+  let displayPrice: string;
+  if (typeof product.price === 'number') {
+    displayPrice = product.price.toLocaleString('vi-VN') + '₫';
+  } else if (product.variants?.length) {
+    const prices = product.variants.map((v) => v.price).filter((p) => typeof p === 'number');
+    if (prices.length > 0) {
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      displayPrice =
+        min === max
+          ? min.toLocaleString('vi-VN') + '₫'
+          : `${min.toLocaleString('vi-VN')}₫ - ${max.toLocaleString('vi-VN')}₫`;
+    } else {
+      displayPrice = 'Giá chưa cập nhật';
+    }
+  } else {
+    displayPrice = 'Giá chưa cập nhật';
+  }
 
   return (
     <div className={styles.card}>
@@ -96,12 +112,10 @@ export default function ProductCard({
           <h3 className={styles.name}>{product.name}</h3>
           <p className={styles.category}>Danh mục: {categoryName}</p>
           <div className={styles.priceRow}>
-            <span className={styles.price}>
-              {typeof displayPrice === 'number'
-                ? displayPrice.toLocaleString('vi-VN') + '₫'
-                : 'Giá chưa cập nhật'}
-            </span>
-            {product.sold && <span className={styles.sold}>Đã bán {product.sold}</span>}
+            <span className={styles.price}>{displayPrice}</span>
+            {product.sold ? (
+              <span className={styles.sold}>Đã bán {product.sold}</span>
+            ) : null}
           </div>
         </div>
       </Link>
