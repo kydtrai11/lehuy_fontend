@@ -1,111 +1,139 @@
 .card {
-  background-color: #1a1a1a;
-  border-radius: 0.75rem;
+  background: #1a1a1a;
+  border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  height: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  border: 1px solid #2a2a2a;
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .link {
-  text-decoration: none;
-  color: inherit;
   display: flex;
   flex-direction: column;
   height: 100%;
+  text-decoration: none;
+  color: inherit;
 }
 
 .imageWrapper {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background-color: #000;
   position: relative;
-  overflow: hidden;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  width: 100%;
+  padding-top: 100%;
+  /* ✅ giữ khung vuông */
+  background: #111;
 }
 
 .image {
   object-fit: cover;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.3s ease;
-}
-
-.card:hover .image {
-  transform: scale(1.05);
+  border-bottom: 1px solid #2a2a2a;
 }
 
 .content {
-  padding: 0.75rem;
+  flex: 1;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
   justify-content: space-between;
+  gap: 6px;
 }
 
 .name {
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   color: #fff;
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
-  margin-bottom: 0.25rem;
+  /* ✅ giới hạn 2 dòng */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .category {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #aaa;
-  margin-bottom: 0.5rem;
 }
 
 .priceRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
+  margin-top: 6px;
 }
 
 .price {
   font-size: 1rem;
+  font-weight: 700;
   color: #ff2c55;
-  font-weight: bold;
+  /* đỏ nổi bật như TikTokShop */
 }
 
 .sold {
   font-size: 0.8rem;
-  color: #aaa;
+  color: #bbb;
 }
 
-/* Nút xoá admin */
+/* Admin buttons */
+.adminActions {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background: #111;
+  border-top: 1px solid #2a2a2a;
+}
+
+.edit,
 .delete {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  padding: 4px 8px;
-  background: #fe2c55;
-  color: white;
-  font-size: 12px;
-  border: none;
+  flex: 1;
+  margin: 0 4px;
+  padding: 6px 10px;
   border-radius: 6px;
+  border: none;
   cursor: pointer;
-  transition: background 0.3s ease;
-  z-index: 10;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.edit {
+  background: #333;
+  color: #fff;
+}
+
+.edit:hover {
+  background: #444;
+}
+
+.delete {
+  background: #ff2c55;
+  color: #fff;
 }
 
 .delete:hover {
-  background: #d4003a;
+  background: #ff3d66;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .content {
+    padding: 10px;
+  }
+
+  .name {
+    font-size: 0.95rem;
+  }
+
+  .price {
+    font-size: 0.95rem;
+  }
+
+  .sold {
+    font-size: 0.75rem;
+  }
 }
