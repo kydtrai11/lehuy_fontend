@@ -71,7 +71,7 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
   const [catPath, setCatPath] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // ====== Load danh mục ======
   useEffect(() => {

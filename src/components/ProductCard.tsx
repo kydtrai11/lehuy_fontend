@@ -41,7 +41,7 @@ const flattenCategories = (cats: Category[] = []): Category[] => {
   return out;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 /* ✅ Chuẩn hoá ảnh */
 const normalizeImage = (img?: string): string => {
