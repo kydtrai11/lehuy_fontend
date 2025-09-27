@@ -5,7 +5,7 @@ import axios, { AxiosError } from 'axios';
 import styles from '@/styles/ProductForm.module.css';
 import CategoryTreeSelect from '@/components/CategoryTreeSelect';
 import dynamic from 'next/dynamic';
-import ReactMarkdown from 'react-markdown'; // ✅ bổ sung import
+import ReactMarkdown from 'react-markdown';
 
 // ✅ Markdown editor
 const MdEditor = dynamic(() => import('react-markdown-editor-lite'), { ssr: false });
@@ -283,7 +283,6 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
               )}
             </div>
           )}
-
         </div>
 
         {/* Chất liệu */}
@@ -375,7 +374,18 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         <MdEditor
           value={form.description}
           style={{ height: '300px' }}
-          renderHTML={(text: string) => <ReactMarkdown>{text}</ReactMarkdown>}
+          renderHTML={(text: string) => (
+            <ReactMarkdown
+              components={{
+                img: ({ node, ...props }) =>
+                  props.src && props.src.trim() ? (
+                    <img {...props} alt={props.alt || 'ảnh'} />
+                  ) : null,
+              }}
+            >
+              {text}
+            </ReactMarkdown>
+          )}
           onChange={({ text }: { text: string }) =>
             setForm((prev) => ({ ...prev, description: text }))
           }
@@ -387,24 +397,24 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
                 headers: { 'Content-Type': 'multipart/form-data' },
               });
 
-              const url =
+              const relative =
                 res.data?.url ||
                 res.data?.path ||
                 (res.data?.filename ? `/uploads/description/${res.data.filename}` : '');
 
-              if (!url) throw new Error('❌ Không tìm thấy đường dẫn ảnh trong response');
+              if (!relative) throw new Error('❌ Không tìm thấy đường dẫn ảnh trong response');
 
-              // ✅ Trả đúng cú pháp markdown ảnh
-              return `![ảnh mô tả](${url})`;
+              // ✅ luôn build URL tuyệt đối
+              const fullUrl = relative.startsWith('http')
+                ? relative
+                : `${API_URL}${relative}`;
+
+              return `![ảnh mô tả](${fullUrl})`;
             } catch (err) {
               alert('❌ Upload ảnh thất bại');
               return Promise.reject(err);
             }
           }}
-
-
-
-
         />
         <p className={styles.hint}>
           Bạn có thể dùng Markdown: <code>**đậm**</code>, <code>![ảnh](url)</code> ...
@@ -417,17 +427,16 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
         <button className={styles.ghostBtn} type="button" onClick={generateVariants}>
           🔄 Tạo nhanh từ Màu & Size
         </button>
-        {/* ✅ Nút đồng bộ */}
         <button
           className={styles.ghostBtn}
           type="button"
           onClick={() => {
             if (variants.length === 0) return;
-            const base = variants[0]; // ✅ lấy biến thể đầu tiên làm chuẩn
+            const base = variants[0];
             setVariants((prev) =>
               prev.map((v, idx) =>
                 idx === 0
-                  ? v // giữ nguyên bản gốc
+                  ? v
                   : {
                     ...v,
                     price: base.price,
@@ -442,7 +451,6 @@ export default function ProductForm({ onCreated, editingProduct, onUpdated }: Pr
           📌 Đồng bộ theo biến thể đầu tiên
         </button>
       </div>
-
 
       <div className={styles.variants}>
         {variants.length === 0 && <div className={styles.note}>Chưa có biến thể.</div>}
